@@ -6,6 +6,7 @@ An autonomous agent powered by the **kimi-k2-thinking** model for creating novel
 
 - 🤖 **Autonomous Writing**: The agent plans and executes creative writing tasks independently
 - 📚 **Novel Writing**: Create complete novels with multiple chapters
+- ✏️ **Editing Mode**: Revise existing chapters based on your feedback
 - ⚡ **Real-Time Streaming**: See the agent's reasoning and writing appear as it's generated
 - 💾 **Smart Context Management**: Automatically compresses context when approaching token limits
 - 🔄 **Recovery Mode**: Resume interrupted work from saved context summaries
@@ -75,6 +76,26 @@ uv run kimi-writer.py
 ```
 Then enter your prompt when asked.
 
+### Edit Mode
+
+Revise existing chapters with user feedback:
+```bash
+# Edit mode - revise existing content
+python kimi-writer.py --mode edit "Make chapter 3 more suspenseful"
+
+# Edit mode - character changes
+python kimi-writer.py --mode edit "Make the protagonist in chapter 5 more assertive"
+
+# Edit mode - tone changes
+python kimi-writer.py --mode edit "Rewrite chapter 2 to be darker and grittier"
+```
+
+In edit mode, the agent can:
+- Read existing chapter files
+- List all chapters in your project
+- Apply specific changes based on your feedback
+- Preserve what works while addressing your requests
+
 ### Recovery Mode
 
 If the agent is interrupted or you want to continue previous work:
@@ -87,14 +108,17 @@ uv run kimi-writer.py --recover output/my_project/.context_summary_20250107_1430
 
 ### The Agent's Tools
 
-The agent has access to three tools:
-
+**Write Mode** (default) has access to:
 1. **create_project**: Creates a project folder to organize the writing
 2. **write_file**: Writes markdown files with three modes:
    - `create`: Creates a new file (fails if exists)
    - `append`: Adds content to an existing file
    - `overwrite`: Replaces the entire file content
 3. **compress_context**: Automatically triggered to manage context size
+
+**Edit Mode** (`--mode edit`) has additional tools:
+4. **read_file**: Reads existing chapter content before editing
+5. **list_files**: Lists all chapters in the project with word counts
 
 ### The Agentic Loop
 

@@ -138,16 +138,80 @@ def get_tool_definitions() -> List[Dict[str, Any]]:
 def get_tool_map() -> Dict[str, Callable]:
     """
     Returns a mapping of tool names to their implementation functions.
-    
+
     Returns:
         Dictionary mapping tool name strings to callable functions
     """
     from tools import write_file_impl, create_project_impl, compress_context_impl
-    
+
     return {
         "create_project": create_project_impl,
         "write_file": write_file_impl,
         "compress_context": compress_context_impl
+    }
+
+
+def get_edit_tool_definitions() -> List[Dict[str, Any]]:
+    """
+    Returns the tool definitions for EDIT mode, including read/list capabilities.
+
+    Returns:
+        List of tool definition dictionaries
+    """
+    # Start with the base write tools
+    base_tools = get_tool_definitions()
+
+    # Add read and list tools
+    edit_tools = [
+        {
+            "type": "function",
+            "function": {
+                "name": "read_file",
+                "description": "Reads the content of an existing file from the active project folder. ALWAYS use this before editing a file to see the current content.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "filename": {
+                            "type": "string",
+                            "description": "The name of the file to read (e.g., 'chapter_03.md')"
+                        }
+                    },
+                    "required": ["filename"]
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "list_files",
+                "description": "Lists all markdown files in the active project folder with their word counts. Useful to see what chapters exist before editing.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {},
+                    "required": []
+                }
+            }
+        }
+    ]
+
+    return base_tools + edit_tools
+
+
+def get_edit_tool_map() -> Dict[str, Callable]:
+    """
+    Returns a mapping of tool names to their implementation functions for EDIT mode.
+
+    Returns:
+        Dictionary mapping tool name strings to callable functions
+    """
+    from tools import write_file_impl, create_project_impl, compress_context_impl, read_file_impl, list_files_impl
+
+    return {
+        "create_project": create_project_impl,
+        "write_file": write_file_impl,
+        "compress_context": compress_context_impl,
+        "read_file": read_file_impl,
+        "list_files": list_files_impl
     }
 
 
@@ -193,4 +257,62 @@ Your workflow:
 5. Create supporting files like README or table of contents if helpful
 
 REMEMBER: You have 64K tokens per response - use them! Write rich, detailed, complete chapters. Don't artificially limit yourself. A good chapter is 2,000-5,000 words. Write what the narrative needs to be excellent."""
+
+
+def get_edit_system_prompt() -> str:
+    """
+    Returns the system prompt for the EDITING agent.
+
+    Returns:
+        System prompt string for edit mode
+    """
+    return """You are Kimi, an expert creative writing assistant developed by Moonshot AI. Your specialty is editing and revising novels based on user feedback.
+
+Your capabilities:
+1. You can read existing files to see current content
+2. You can list all files in a project to see what exists
+3. You can write/overwrite markdown files to apply edits
+4. Context compression happens automatically when needed - you don't need to worry about it
+
+EDITING WORKFLOW:
+1. When user requests changes to existing content, ALWAYS read the file first using read_file
+2. If you're unsure which files exist, use list_files to see all chapters
+3. Understand the specific feedback:
+   - Plot changes: Adding/removing/modifying story events
+   - Character changes: Personality, motivations, dialogue, actions
+   - Tone/style changes: Making it darker, lighter, more formal, etc.
+   - Structural changes: Pacing, scene order, chapter splits
+   - Content changes: Adding/removing scenes, expanding/condensing sections
+4. Apply the requested changes while preserving what works
+5. Use write_file with 'overwrite' mode to save the edited version
+
+CRITICAL EDITING GUIDELINES:
+- ALWAYS read the current content before making changes
+- Understand EXACTLY what the user wants changed
+- Preserve continuity with other chapters (character states, plot threads, established details)
+- Maintain the overall word count range (2,000-5,000 words per chapter) unless specifically asked to change it
+- Keep the user's original creative vision intact - only change what they explicitly request
+- Write complete, polished content - no placeholders or summaries
+
+USER'S FEEDBACK PRIORITY:
+- The user's feedback and requested changes take ABSOLUTE PRIORITY
+- Your job is to execute their revisions precisely
+- If feedback is unclear, focus on the most obvious interpretation
+- Maintain consistency with unchanged chapters and established story elements
+
+Best practices:
+- Read before you edit (use read_file)
+- Check what exists (use list_files if needed)
+- Make targeted changes (don't rewrite everything unless asked)
+- Preserve good content that doesn't need changing
+- Use 'overwrite' mode to replace the chapter with the edited version
+
+Your workflow:
+1. Use list_files to see available chapters (if needed)
+2. Use read_file to read the chapter that needs editing
+3. Understand the user's specific feedback and requested changes
+4. Apply the changes while maintaining narrative consistency
+5. Use write_file with 'overwrite' mode to save the edited chapter
+
+REMEMBER: You're editing, not rewriting from scratch. Preserve what works, change what the user requests. Maintain the quality and completeness of the original while incorporating the feedback."""
 

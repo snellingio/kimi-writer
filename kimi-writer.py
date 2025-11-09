@@ -18,10 +18,13 @@ from typing import List, Dict, Any
 load_dotenv()
 
 from utils import (
-    estimate_token_count, 
-    get_tool_definitions, 
+    estimate_token_count,
+    get_tool_definitions,
     get_tool_map,
-    get_system_prompt
+    get_system_prompt,
+    get_edit_tool_definitions,
+    get_edit_tool_map,
+    get_edit_system_prompt
 )
 from tools.compression import compress_context_impl
 
@@ -54,66 +57,81 @@ def load_context_from_file(file_path: str) -> str:
         sys.exit(1)
 
 
-def get_user_input() -> tuple[str, bool]:
+def get_user_input() -> tuple[str, bool, str]:
     """
     Gets user input from command line, either as a prompt or recovery file.
-    
+
     Returns:
-        Tuple of (prompt/context, is_recovery_mode)
+        Tuple of (prompt/context, is_recovery_mode, mode)
     """
     parser = argparse.ArgumentParser(
-        description="Kimi Writing Agent - Create novels and books",
+        description="Kimi Writing Agent - Create and edit novels and books",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Fresh start with inline prompt
+  # Write mode - Create new novel
   python kimi-writer.py "Create a sci-fi novel with 12 chapters"
+
+  # Edit mode - Revise existing content
+  python kimi-writer.py --mode edit "Make chapter 3 darker and more suspenseful"
 
   # Recovery mode from previous context
   python kimi-writer.py --recover my_project/.context_summary_20250107_143022.md
         """
     )
-    
+
     parser.add_argument(
         'prompt',
         nargs='?',
-        help='Your writing request (e.g., "Create a mystery novel")'
+        help='Your writing or editing request'
     )
     parser.add_argument(
         '--recover',
         type=str,
         help='Path to a context summary file to continue from'
     )
-    
+    parser.add_argument(
+        '--mode',
+        type=str,
+        choices=['write', 'edit'],
+        default='write',
+        help='Mode: "write" for creating new content (default), "edit" for revising existing content'
+    )
+
     args = parser.parse_args()
-    
+
     # Check if recovery mode
     if args.recover:
         context = load_context_from_file(args.recover)
-        return context, True
-    
+        return context, True, args.mode
+
     # Check if prompt provided as argument
     if args.prompt:
-        return args.prompt, False
-    
+        return args.prompt, False, args.mode
+
     # Interactive prompt
     print("=" * 60)
     print("Kimi Writing Agent")
     print("=" * 60)
-    print("\nEnter your writing request (or 'quit' to exit):")
-    print("Example: Create a sci-fi novel with 15 chapters\n")
-    
+    print(f"\nMode: {args.mode.upper()}")
+    if args.mode == 'write':
+        print("Enter your writing request (or 'quit' to exit):")
+        print("Example: Create a sci-fi novel with 15 chapters\n")
+    else:
+        print("Enter your editing request (or 'quit' to exit):")
+        print("Example: Make chapter 3 more suspenseful\n")
+
     prompt = input("> ").strip()
-    
+
     if prompt.lower() in ['quit', 'exit', 'q']:
         print("Goodbye!")
         sys.exit(0)
-    
+
     if not prompt:
-        print("Error: Empty prompt. Please provide a writing request.")
+        print("Error: Empty prompt. Please provide a request.")
         sys.exit(1)
-    
-    return prompt, False
+
+    return prompt, False, args.mode
 
 
 def convert_message_for_api(msg: Any) -> Dict[str, Any]:
@@ -194,13 +212,25 @@ def main():
     )
     
     # Get user input
-    user_prompt, is_recovery = get_user_input()
-    
+    user_prompt, is_recovery, mode = get_user_input()
+
+    # Select appropriate tools and prompt based on mode
+    if mode == 'edit':
+        system_prompt = get_edit_system_prompt()
+        tools = get_edit_tool_definitions()
+        tool_map = get_edit_tool_map()
+        mode_display = "EDIT MODE - Revising existing content"
+    else:
+        system_prompt = get_system_prompt()
+        tools = get_tool_definitions()
+        tool_map = get_tool_map()
+        mode_display = "WRITE MODE - Creating new content"
+
     # Initialize message history
     messages = [
-        {"role": "system", "content": get_system_prompt()}
+        {"role": "system", "content": system_prompt}
     ]
-    
+
     if is_recovery:
         messages.append({
             "role": "user",
@@ -213,14 +243,11 @@ def main():
             "content": user_prompt
         })
         print(f"\n📝 Task: {user_prompt}\n")
-    
-    # Get tool definitions and mapping
-    tools = get_tool_definitions()
-    tool_map = get_tool_map()
-    
+
     print("=" * 60)
     print("Starting Kimi Writing Agent")
     print("=" * 60)
+    print(f"Mode: {mode_display}")
     print(f"Model: {MODEL_NAME}")
     print(f"Max iterations: {MAX_ITERATIONS}")
     print(f"Context limit: {TOKEN_LIMIT:,} tokens")
