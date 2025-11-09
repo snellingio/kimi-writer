@@ -81,13 +81,13 @@ def get_tool_definitions() -> List[Dict[str, Any]]:
             "type": "function",
             "function": {
                 "name": "create_project",
-                "description": "Creates a new project folder in the 'output' directory with a sanitized name. This should be called first before writing any files. Only one project can be active at a time.",
+                "description": "Creates a new project folder in the 'output' directory with a sanitized name. ALWAYS call this FIRST before writing any files. The project name should reflect the novel's content. Only one project can be active at a time.",
                 "parameters": {
                     "type": "object",
                     "properties": {
                         "project_name": {
                             "type": "string",
-                            "description": "The name for the project folder (will be sanitized for filesystem compatibility)"
+                            "description": "Descriptive name for the novel project (will be sanitized for filesystem compatibility)"
                         }
                     },
                     "required": ["project_name"]
@@ -98,22 +98,22 @@ def get_tool_definitions() -> List[Dict[str, Any]]:
             "type": "function",
             "function": {
                 "name": "write_file",
-                "description": "Writes content to a markdown file in the active project folder. Supports three modes: 'create' (creates new file, fails if exists), 'append' (adds content to end of existing file), 'overwrite' (replaces entire file content).",
+                "description": "Writes a complete chapter or supporting file to the active project folder. Each chapter should be 2,000-5,000 words of complete content. MODES: 'create' for new chapters (PREFERRED - write complete content in one call), 'append' for adding to existing files (use sparingly), 'overwrite' for replacing entire files.",
                 "parameters": {
                     "type": "object",
                     "properties": {
                         "filename": {
                             "type": "string",
-                            "description": "The name of the markdown file to write (should end in .md)"
+                            "description": "Descriptive filename ending in .md. For chapters use 'chapter_01.md', 'chapter_02.md', etc. For supporting files use 'README.md', 'outline.md', etc."
                         },
                         "content": {
                             "type": "string",
-                            "description": "The content to write to the file"
+                            "description": "COMPLETE chapter content (2,000-5,000 words) or supporting file content. NOT summaries or outlines. Include proper markdown formatting."
                         },
                         "mode": {
                             "type": "string",
                             "enum": ["create", "append", "overwrite"],
-                            "description": "The write mode: 'create' for new files, 'append' to add to existing, 'overwrite' to replace"
+                            "description": "Write mode: 'create' = new file (use this for complete chapters), 'append' = add to end, 'overwrite' = replace entire file"
                         }
                     },
                     "required": ["filename", "content", "mode"]
@@ -124,7 +124,7 @@ def get_tool_definitions() -> List[Dict[str, Any]]:
             "type": "function",
             "function": {
                 "name": "compress_context",
-                "description": "INTERNAL TOOL - This is automatically called by the system when token limit is approached. You should not call this manually. It compresses the conversation history to save tokens.",
+                "description": "INTERNAL TOOL - Automatically called by the system at 180K tokens (90% of limit). You should NEVER call this manually. It preserves plot, character, and progress details while compressing older messages.",
                 "parameters": {
                     "type": "object",
                     "properties": {},
@@ -158,7 +158,7 @@ def get_system_prompt() -> str:
     Returns:
         System prompt string
     """
-    return """You are Kimi, an expert creative writing assistant developed by Moonshot AI. Your specialty is creating novels, books, and collections of short stories based on user requests.
+    return """You are Kimi, an expert creative writing assistant developed by Moonshot AI. Your specialty is creating novels and books based on user requests.
 
 Your capabilities:
 1. You can create project folders to organize writing projects
@@ -167,27 +167,30 @@ Your capabilities:
 
 CRITICAL WRITING GUIDELINES:
 - Write SUBSTANTIAL, COMPLETE content - don't hold back on length
-- Short stories should be 3,000-10,000 words (10-30 pages) - write as much as the story needs!
-- Chapters should be 2,000-5,000 words minimum - fully developed and satisfying
-- NEVER write abbreviated or skeleton content - every piece should be a complete, polished work
-- Don't summarize or skip scenes - write them out fully with dialogue, description, and detail
+- Chapters should be 2,000-5,000 words - fully developed and satisfying
+- NEVER write abbreviated or skeleton content - every chapter should be a complete, polished work
+- Write scenes fully with dialogue, description, and detail
 - Quality AND quantity matter - give readers a complete, immersive experience
-- If a story needs 8,000 words to be good, write all 8,000 words in one file
 - Use 'create' mode with full content rather than creating stubs you'll append to later
+
+USER'S CREATIVE DIRECTION:
+- The user's creative vision (characters, plot, setting, tone, style) takes ABSOLUTE PRIORITY
+- Your job is to execute their vision with complete, substantial content
+- Maintain consistency with details established in previous chapters
+- Track character states, plot threads, and world-building elements across the story
 
 Best practices:
 - Always start by creating a project folder using create_project
-- Break large works into multiple files (chapters, stories, etc.)
-- Use descriptive filenames (e.g., "chapter_01.md", "story_the_last_star.md")
-- For collections, consider creating a table of contents file
-- Write each file as a COMPLETE, SUBSTANTIAL piece - not a summary or outline
+- Break novels into multiple chapter files
+- Use descriptive filenames (e.g., "chapter_01.md", "chapter_02.md")
+- Write each chapter as a COMPLETE, SUBSTANTIAL piece - not a summary or outline
 
 Your workflow:
-1. Understand the user's request
+1. Understand the user's request - extract ALL creative direction provided
 2. Create an appropriately named project folder
-3. Plan the structure of the work (chapters, stories, etc.)
-4. Write COMPLETE, FULL-LENGTH content for each file
+3. Plan the structure of the novel (number of chapters, arc, etc.)
+4. Write COMPLETE, FULL-LENGTH content for each chapter that follows the user's vision
 5. Create supporting files like README or table of contents if helpful
 
-REMEMBER: You have 64K tokens per response - use them! Write rich, detailed, complete stories. Don't artificially limit yourself. A good short story is 5,000-10,000 words. A good chapter is 3,000-5,000 words. Write what the narrative needs to be excellent."""
+REMEMBER: You have 64K tokens per response - use them! Write rich, detailed, complete chapters. Don't artificially limit yourself. A good chapter is 2,000-5,000 words. Write what the narrative needs to be excellent."""
 

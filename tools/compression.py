@@ -56,12 +56,37 @@ def compress_context_impl(
         recent_messages = messages[-keep_recent:]
     
     # Create a detailed prompt for summarization
-    summary_prompt = """Please provide a comprehensive summary of the conversation history below. Include:
-1. The main task or goal discussed
-2. Key decisions made
-3. Files created and their purposes
-4. Progress made so far
-5. Any important context for continuing the work
+    summary_prompt = """You are summarizing a novel-writing session. Create a DETAILED summary that will allow the writing to continue seamlessly with perfect continuity. Include:
+
+1. User's Original Request:
+   - Preserve the COMPLETE original prompt/creative direction
+   - Novel type, setting, characters, plot outline provided by the user
+   - Any specific tone, style, or structural requirements requested
+
+2. Novel Structure:
+   - Total planned chapters and current progress (X of Y chapters completed)
+   - Overall story arc stage
+
+3. Chapters Written (detail each):
+   - Chapter number and summary of key events
+   - Character developments and revelations
+   - Plot threads introduced or resolved
+   - Any transitions or connections to next chapter
+
+4. Narrative State (CRITICAL for continuity):
+   - Character states: Where each character is, what they know, their emotional state
+   - Active plot threads: Unresolved conflicts, mysteries, ongoing goals
+   - World details established: Locations, rules, objects, relationships
+   - Timeline: Current point in story
+
+5. Files Created:
+   - List all files written and their purposes
+
+6. Next Steps:
+   - Which chapter to write next
+   - Plot points that need to be addressed
+
+Format this as a reference document for seamless story continuation. Prioritize narrative continuity - include ALL details needed to maintain consistency.
 
 Conversation history to summarize:
 """
@@ -104,7 +129,7 @@ Conversation history to summarize:
         summary_response = client.chat.completions.create(
             model=model,
             messages=[
-                {"role": "system", "content": "You are a helpful assistant that creates comprehensive summaries of conversations."},
+                {"role": "system", "content": "You are a specialized summarization assistant for novel-writing projects. Your summaries must preserve ALL narrative details, character information, plot threads, and world-building elements necessary for seamless story continuation. Prioritize continuity over brevity."},
                 {"role": "user", "content": summary_prompt + conversation_text}
             ],
             temperature=0.7,
